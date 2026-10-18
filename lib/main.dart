@@ -2,26 +2,12 @@ import 'package:flutter/material.dart';
 import 'onboarding_screen.dart';
 
 void main() {
-  runApp(const LostFoundApp());
-}
-
-class LostFoundApp extends StatelessWidget {
-  const LostFoundApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  runApp(
+    const MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Campus Lost & Found',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF5140EB),
-        ),
-      ),
-      home: const SplashScreen(),
-    );
-  }
+      home: SplashScreen(),
+    ),
+  );
 }
 
 class SplashScreen extends StatefulWidget {
@@ -35,19 +21,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _openOnboarding();
-  }
 
-  Future<void> _openOnboarding() async {
-    await Future.delayed(const Duration(seconds: 2));
+    // Open onboarding after 2 seconds.
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const OnboardingScreen(),
-      ),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OnboardingScreen(),
+        ),
+      );
+    });
   }
 
   @override
@@ -55,11 +40,10 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
               Color(0xFF35299B),
               Color(0xFF5140EB),
@@ -67,75 +51,49 @@ class _SplashScreenState extends State<SplashScreen> {
             ],
           ),
         ),
-        child: SafeArea(
+        child: const SafeArea(
           child: Column(
             children: [
-              // Main content occupies the available space.
               Expanded(
                 child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo background.
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: const Color(0x26FFFFFF),
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(
-                              color: const Color(0x40FFFFFF),
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.travel_explore_rounded,
-                            size: 54,
-                            color: Colors.white,
-                          ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.travel_explore,
+                        size: 80,
+                        color: Colors.white,
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        'Lost & Found',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-
-                        const SizedBox(height: 28),
-
-                        const Text(
-                          'Lost & Found',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Lost it? Found it. Return it.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white70,
                         ),
-
-                        const SizedBox(height: 12),
-
-                        const Text(
-                          'Lost it? Found it. Return it.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xCCFFFFFF),
-                            fontSize: 15,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-
-              // Bottom tagline.
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, 30),
+              Padding(
+                padding: EdgeInsets.all(24),
                 child: Text(
                   'A LITTLE CARE. A CLOSER CAMPUS.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color(0xB3FFFFFF),
                     fontSize: 10,
                     letterSpacing: 1.4,
+                    color: Colors.white70,
                   ),
                 ),
               ),
