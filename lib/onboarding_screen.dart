@@ -1,5 +1,5 @@
-import 'login_screen.dart';
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -9,292 +9,161 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _controller = PageController();
-  int _currentPage = 0;
+  final controller = PageController();
+  int currentPage = 0;
 
-  static const Color purple = Color(0xFF5140EB);
-
-  final List<Map<String, dynamic>> _pages = [
-    {
-      'icon': Icons.add_photo_alternate_outlined,
-      'title': 'Found something? Post it in seconds',
-      'description':
-      'A small act of kindness can make someone’s day. '
-          'Snap a photo and help it find its way home.',
-    },
-    {
-      'icon': Icons.search_rounded,
-      'title': 'Lost something? Search and track it',
-      'description':
-      'From your favourite bottle to your laptop. '
-          'Search across campus and keep every report in one place.',
-    },
-    {
-      'icon': Icons.compare_arrows_rounded,
-      'title': 'Find possible matches faster',
-      'description':
-      'Compare lost and found reports using item details, '
-          'categories, and campus locations.',
-    },
+  final titles = [
+    'Found something?',
+    'Lost something?',
+    'Find possible matches',
   ];
 
-  void _continue() {
-    if (_currentPage < _pages.length - 1) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _openLogin();
-    }
-  }
+  final descriptions = [
+    'Take a photo and help someone find their lost item.',
+    'Search campus reports to find your belongings.',
+    'Compare item details and locations to find a match.',
+  ];
 
-  void _openLogin() {
-    Navigator.of(context).pushReplacement(
+  final icons = [
+    Icons.add_a_photo_outlined,
+    Icons.search,
+    Icons.compare_arrows,
+  ];
+
+  void openLogin() {
+    Navigator.pushReplacement(
+      context,
       MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
+        builder: (context) => const LoginScreen(),
       ),
     );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const purple = Color(0xFF5140EB);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FD),
       body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              children: [
-                // Top bar.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Row(
+          child: SizedBox(
+            width: 440,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (_currentPage > 0)
-                        IconButton(
-                          tooltip: 'Previous page',
-                          onPressed: () {
-                            _controller.previousPage(
-                              duration:
-                              const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.arrow_back_rounded,
-                            color: purple,
-                          ),
-                        ),
-                      const Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Text(
-                            'Lost & Found',
-                            style: TextStyle(
-                              color: purple,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                      const Text(
+                        'Lost & Found',
+                        style: TextStyle(
+                          color: purple,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       TextButton(
-                        onPressed: _openLogin,
-                        child: const Text(
-                          'Skip',
-                          style: TextStyle(
-                            color: Color(0xFF7B879C),
-                          ),
-                        ),
+                        onPressed: openLogin,
+                        child: const Text('Skip'),
                       ),
                     ],
                   ),
-                ),
 
-                // Swipeable pages.
-                Expanded(
-                  child: PageView.builder(
-                    controller: _controller,
-                    itemCount: _pages.length,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    itemBuilder: (context, index) {
-                      final page = _pages[index];
-
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                          children: [
-                            // Illustration placeholder.
-                            AspectRatio(
-                              aspectRatio: 1.15,
-                              child: Container(
+                  Expanded(
+                    child: PageView.builder(
+                      controller: controller,
+                      itemCount: titles.length,
+                      onPageChanged: (index) {
+                        setState(() => currentPage = index);
+                      },
+                      itemBuilder: (context, index) {
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 32,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                height: 200,
+                                width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFECEAF8),
-                                  borderRadius:
-                                  BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
-                                child: Center(
-                                  child: Container(
-                                    padding:
-                                    const EdgeInsets.all(28),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      page['icon'] as IconData,
-                                      size: 76,
-                                      color: purple,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Progress indicators.
-                            Row(
-                              children: List.generate(
-                                _pages.length,
-                                    (dotIndex) {
-                                  final selected =
-                                      dotIndex == index;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(
-                                      right: 5,
-                                    ),
-                                    width: selected ? 24 : 8,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? purple
-                                          : const Color(
-                                        0xFFDDDAF5,
-                                      ),
-                                      borderRadius:
-                                      BorderRadius.circular(8),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            Text(
-                              page['title'] as String,
-                              style: const TextStyle(
-                                fontSize: 26,
-                                height: 1.2,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF182237),
-                              ),
-                            ),
-
-                            const SizedBox(height: 14),
-
-                            Text(
-                              page['description'] as String,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.6,
-                                color: Color(0xFF7B879C),
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFEDFF),
-                                borderRadius:
-                                BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Built for your campus community',
-                                style: TextStyle(
+                                child: Icon(
+                                  icons[index],
+                                  size: 90,
                                   color: purple,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Bottom actions.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton(
-                          onPressed: _continue,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: purple,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 32),
                               Text(
-                                _currentPage == _pages.length - 1
-                                    ? 'Get Started'
-                                    : 'Continue',
+                                titles[index],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                descriptions[index],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.blueGrey,
+                                  height: 1.5,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _openLogin,
-                        child: const Text(
-                          'Already part of campus? Log in',
-                          style: TextStyle(
-                            color: Color(0xFF7B879C),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+
+                  Text('${currentPage + 1} / ${titles.length}'),
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: purple,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        if (currentPage == titles.length - 1) {
+                          openLogin();
+                        } else {
+                          controller.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      child: Text(
+                        currentPage == titles.length - 1
+                            ? 'Get Started'
+                            : 'Continue',
+                      ),
+                    ),
+                  ),
+
+                  TextButton(
+                    onPressed: openLogin,
+                    child: const Text('Already have an account? Log in'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
