@@ -24,10 +24,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     'Compare item details and locations to find a match.',
   ];
 
-  final icons = [
-    Icons.add_a_photo_outlined,
-    Icons.search,
-    Icons.compare_arrows,
+  // Icons ki jaga ab images ke paths
+  final images = [
+    'assets/images/found.png',
+    'assets/images/lost.png',
+    'assets/images/match.png',
   ];
 
   void openLogin() {
@@ -90,6 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           child: Column(
                             children: [
+                              // Yahan icon ki jaga image hai
                               Container(
                                 height: 200,
                                 width: double.infinity,
@@ -97,10 +99,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   color: const Color(0xFFECEAF8),
                                   borderRadius: BorderRadius.circular(24),
                                 ),
-                                child: Icon(
-                                  icons[index],
-                                  size: 90,
-                                  color: purple,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.asset(
+                                    images[index],
+                                    fit: BoxFit.cover,
+                                    // Agar image na mile to ye dikhega
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported_outlined,
+                                          size: 60,
+                                          color: purple,
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 32),
