@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,11 +19,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
   }
 
+  // Direct HomeScreen (/home) par jane ka working logic
   void login() {
     FocusScope.of(context).unfocus();
 
     if (formKey.currentState!.validate()) {
-      showMessage('Form is valid. Login is not connected yet.');
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+            (route) => false,
+      );
     }
   }
 
@@ -45,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Logo.
+                    // Logo
                     const CircleAvatar(
                       radius: 34,
                       backgroundColor: Color(0xFFEFEDFF),
@@ -76,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Email.
+                    // Email field
                     TextFormField(
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
@@ -99,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Password.
+                    // Password field
                     TextFormField(
                       obscureText: hidePassword,
                       textInputAction: TextInputAction.done,
@@ -135,11 +139,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       onFieldSubmitted: (_) => login(),
                     ),
 
+                    // Forgot password navigation
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          showMessage('Password reset is coming next.');
+                          Navigator.pushNamed(context, '/reset-password');
                         },
                         child: const Text(
                           'Forgot password?',
@@ -149,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Login button.
+                    // Login button
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -173,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Community card.
+                    // Community card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -201,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Sign up.
+                    // Sign up link
                     Center(
                       child: Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
@@ -210,13 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text('New to Lost & Found?'),
                           TextButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                  const SignupScreen(),
-                                ),
-                              );
+                              Navigator.pushNamed(context, '/signup');
                             },
                             child: const Text(
                               'Sign up',
@@ -239,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Shared styling for both fields.
+  // Input fields style helper method
   InputDecoration inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,

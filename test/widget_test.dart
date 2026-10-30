@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:test2/main.dart';
+import 'package:test2/Main.dart';
 
 void main() {
   testWidgets('Splash screen smoke test', (WidgetTester tester) async {
