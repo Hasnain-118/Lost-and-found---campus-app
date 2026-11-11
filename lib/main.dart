@@ -79,7 +79,9 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      // Home opens only after a successful login — the splash screen hands
+      // over to the login screen instead.
+      Navigator.pushReplacementNamed(context, '/login');
     });
   }
 

@@ -1,4 +1,6 @@
 // Navigation system tests:
+//  * the startup flow (splash hands over to login — Home opens only after
+//    a successful login, including the signup / verify email branch),
 //  * the five bottom navigation bar items and their destinations,
 //  * tab switching, active states, state preservation and no duplicates,
 //  * the central Report action,
@@ -14,6 +16,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:test2/main.dart';
 import 'package:test2/navigation/main_shell.dart';
 import 'package:test2/screens/auth/login_screen.dart';
 import 'package:test2/screens/auth/reset_password_screen.dart';
@@ -93,6 +96,105 @@ bool _drawerTileSelected(WidgetTester tester, Finder tile) {
 }
 
 void main() {
+  testWidgets('app starts on splash and hands over to the login screen, never home automatically', (tester) async {
+    await tester.pumpWidget(const LostAndFoundApp());
+    await tester.pump();
+
+    // Startup shows the splash screen only.
+    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(find.byType(CustomBottomNav), findsNothing);
+    expect(find.byType(AppMenuButton), findsNothing);
+
+    // After the splash delay the app lands on Login — never on Home.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SplashScreen), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(MainShell), findsNothing); // no automatic Home
+    expect(find.text('Hi, Junaid 👋'), findsNothing);
+    expect(find.byType(CustomBottomNav), findsNothing);
+    expect(find.byType(AppMenuButton), findsNothing);
+
+    // The splash screen was replaced, not stacked on top of Login.
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+    expect(navigator.canPop(), isFalse);
+  });
+
+  testWidgets('complete startup flow reaches home only after a successful login', (tester) async {
+    await _usePhoneSurface(tester);
+    await tester.pumpWidget(const LostAndFoundApp());
+    await tester.pump();
+
+    // Splash -> Login (Home must not open automatically).
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(MainShell), findsNothing);
+
+    // Login -> Signup.
+    await tester.tap(find.text('Sign up'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SignupScreen), findsOneWidget);
+
+    // Fill the signup form, pick a department and accept the terms.
+    final signupFields = find.descendant(
+      of: find.byType(SignupScreen),
+      matching: find.byType(TextFormField),
+    );
+    await tester.enterText(signupFields.at(0), 'Junaid Sarwar');
+    await tester.enterText(signupFields.at(1), 'junaid@campus.edu');
+    await tester.enterText(signupFields.at(2), 'Fa24-BSE-067');
+    await tester.enterText(signupFields.at(4), 'password123');
+    await tester.tap(find.descendant(
+      of: find.byType(SignupScreen),
+      matching: find.byType(DropdownButtonFormField<String>),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Software Engineering'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(SignupScreen),
+      matching: find.byType(CheckboxListTile),
+    ));
+    await tester.pump();
+
+    // Signup -> Verify Email, carrying the entered email over.
+    await tester.tap(find.text('Create account'));
+    await tester.pumpAndSettle();
+    expect(find.byType(VerifyEmailScreen), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(VerifyEmailScreen), matching: find.text('junaid@campus.edu')),
+      findsOneWidget,
+    );
+
+    // Verification is not connected yet (no backend) — head back to Login.
+    await _tapBackButton(tester, find.byType(VerifyEmailScreen));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Already have an account? Log in'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SignupScreen), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
+
+    // Login (successful) -> Home, with the auth stack cleared.
+    final loginFields = find.descendant(
+      of: find.byType(LoginScreen),
+      matching: find.byType(TextFormField),
+    );
+    await tester.enterText(loginFields.first, 'junaid@campus.edu');
+    await tester.enterText(loginFields.last, 'password123');
+    await tester.tap(find.text('Login'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsNothing);
+    expect(find.byType(MainShell), findsOneWidget);
+    expect(find.text('Hi, Junaid 👋'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bottom_nav_Home')), findsOneWidget);
+
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+    expect(navigator.canPop(), isFalse);
+  });
+
   testWidgets('bottom navigation bar shows the five required items in order', (tester) async {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
