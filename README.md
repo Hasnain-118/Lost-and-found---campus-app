@@ -1,6 +1,6 @@
 # Project
 
-A new Flutter project.
+A new Flutter group project.
 
 ## Getting Started
 
