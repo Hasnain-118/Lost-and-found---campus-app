@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'verify_email_screen.dart';
 
 /// App colors in one place. Login screen mein bhi yehi colors hain, to
@@ -41,6 +43,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _hidePassword = true;
   bool _accepted = false;
   bool _showTermsError = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -52,24 +55,88 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _signup() {
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+  }
+
+  String _friendlySignupError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'This email is already registered. Try logging in.';
+      case 'invalid-email':
+        return 'Invalid email address format.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 8 characters.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return e.message ?? 'Could not create account. Please try again.';
+    }
+  }
+
+  Future<void> _signup() async {
     FocusScope.of(context).unfocus();
 
     final formIsValid = _formKey.currentState!.validate();
     setState(() => _showTermsError = !_accepted);
 
-    if (!formIsValid || !_accepted) return;
+    if (!formIsValid || !_accepted || _isLoading) return;
 
-    TextInput.finishAutofillContext();
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final campusId = _idController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerifyEmailScreen(
-          email: _emailController.text.trim(),
+    setState(() => _isLoading = true);
+
+    try {
+      final credential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = credential.user;
+      if (user != null) {
+        await user.updateDisplayName(fullName);
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'fullName': fullName,
+          'email': email,
+          'campusId': campusId,
+          'department': _department ?? '',
+          'phone': phone,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (!mounted) return;
+      TextInput.finishAutofillContext();
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerifyEmailScreen(
+            email: email,
+          ),
         ),
-      ),
-    );
+      );
+    } on FirebaseAuthException catch (e) {
+      _showMessage(_friendlySignupError(e));
+    } catch (e) {
+      _showMessage('Something went wrong while creating account.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   // ---------- Validators ----------
@@ -165,7 +232,11 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                         )
                             .toList(),
-                        onChanged: (value) => _department = value,
+                        onChanged: _isLoading
+                            ? null
+                            : (value) {
+                          setState(() => _department = value);
+                        },
                         validator: (value) =>
                         value == null ? 'Select a department' : null,
                       ),
@@ -182,6 +253,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     // Password
                     TextFormField(
                       controller: _passwordController,
+                      enabled: !_isLoading,
                       obscureText: _hidePassword,
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.newPassword],
@@ -199,13 +271,17 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
                           ),
-                          onPressed: () {
+                          onPressed: _isLoading
+                              ? null
+                              : () {
                             setState(() => _hidePassword = !_hidePassword);
                           },
                         ),
                       ),
                       validator: _validatePassword,
-                      onFieldSubmitted: (_) => _signup(),
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) _signup();
+                      },
                     ),
                     const SizedBox(height: 12),
 
@@ -219,7 +295,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         style: TextStyle(fontSize: 13),
                       ),
                       value: _accepted,
-                      onChanged: (value) {
+                      onChanged: _isLoading
+                          ? null
+                          : (value) {
                         setState(() {
                           _accepted = value ?? false;
                           if (_accepted) _showTermsError = false;
@@ -242,7 +320,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     SizedBox(
                       height: 50,
                       child: FilledButton(
-                        onPressed: _signup,
+                        onPressed: _isLoading ? null : _signup,
                         style: FilledButton.styleFrom(
                           backgroundColor: _Palette.purple,
                           foregroundColor: Colors.white,
@@ -250,11 +328,21 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('Create account'),
+                        child: _isLoading
+                            ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Text('Create account'),
                       ),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed:
+                      _isLoading ? null : () => Navigator.pop(context),
                       child: const Text('Already have an account? Log in'),
                     ),
                   ],
@@ -280,6 +368,7 @@ class _SignupScreenState extends State<SignupScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
+        enabled: !_isLoading,
         keyboardType: keyboardType,
         textCapitalization: capitalization,
         textInputAction: TextInputAction.next,

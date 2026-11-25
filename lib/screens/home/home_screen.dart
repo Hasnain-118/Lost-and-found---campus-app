@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../navigation/main_shell.dart';
 import '../../widgets/app_menu_button.dart';
@@ -12,17 +14,70 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedCategoryIndex = 0;
 
-  final List<String> _categories = [
+  final _categories = const [
     'All items',
     'Bags',
     'Electronics',
     'Keys',
   ];
 
+  String _greetingName() {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      return displayName.split(' ').first;
+    }
+    final email = user?.email?.trim() ?? '';
+    if (email.contains('@')) {
+      return email.split('@').first;
+    }
+    return 'Junaid';
+  }
+
+  String _imageForCategory(String category) {
+    switch (category.toLowerCase()) {
+      case 'bags':
+        return 'assets/images/backpack.png';
+      case 'electronics':
+        return 'assets/images/phone.png';
+      case 'keys':
+        return 'assets/images/wallet.png';
+      default:
+        return 'assets/images/backpack.png';
+    }
+  }
+
+  List _mapFoundDocs(QuerySnapshot? snapshot) {
+    if (snapshot == null) return [];
+    final mapped = [];
+    for (final doc in snapshot.docs) {
+      final raw = doc.data();
+      final data = raw != null
+          ? Map<String, dynamic>.from(raw as Map)
+          : <String, dynamic>{};
+      final itemName = (data['itemName'] ?? 'Found item').toString().trim();
+      final location = (data['locationFound'] ?? 'Campus').toString().trim();
+      final timeFound = (data['timeFound'] ?? '').toString().trim();
+      final category = (data['category'] ?? 'All items').toString().trim();
+      final subtitle =
+      timeFound.isNotEmpty ? '$location · $timeFound' : location;
+
+      mapped.add({
+        'title': itemName.isEmpty ? 'Found item' : itemName,
+        'subtitle': subtitle,
+        'status': 'Found',
+        'category': category,
+        'imageAsset': _imageForCategory(category),
+      });
+    }
+    return mapped;
+  }
+
   @override
   Widget build(BuildContext context) {
     const purple = Color(0xFF5140EB);
     const background = Color(0xFFF8F9FD);
+    final selectedCategory = _categories[_selectedCategoryIndex];
 
     return Scaffold(
       backgroundColor: background,
@@ -47,17 +102,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Hi, Junaid 👋',
-                          style: TextStyle(
+                          'Hi, ${_greetingName()} 👋',
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF182237),
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           'Let’s bring your things back home.',
                           style: TextStyle(
                             fontSize: 14,
@@ -121,7 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/report-selection'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/report-selection'),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -131,7 +187,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
-                            Icon(Icons.search, color: Color(0xFFD97706), size: 26),
+                            Icon(
+                              Icons.search,
+                              color: Color(0xFFD97706),
+                              size: 26,
+                            ),
                             SizedBox(height: 12),
                             Text(
                               'I Lost Something',
@@ -149,7 +209,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/report-selection'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/report-selection'),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -159,7 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
-                            Icon(Icons.volunteer_activism_outlined, color: Color(0xFF059669), size: 26),
+                            Icon(
+                              Icons.volunteer_activism_outlined,
+                              color: Color(0xFF059669),
+                              size: 26,
+                            ),
                             SizedBox(height: 12),
                             Text(
                               'I Found Something',
@@ -194,7 +259,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         side: BorderSide.none,
                         labelStyle: TextStyle(
                           color: isSelected ? purple : Colors.blueGrey,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
                         onSelected: (bool selected) {
@@ -225,37 +291,80 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/around-campus'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/around-campus'),
                     child: const Text(
                       'Around campus',
-                      style: TextStyle(color: purple, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: purple,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
 
-              // Grid Items with Photos
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildItemCard(
-                      title: 'iPhone 14',
-                      subtitle: 'Cafeteria · 10m',
-                      status: 'Found',
-                      imageAsset: 'assets/images/phone.png',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildItemCard(
-                      title: 'Leather wallet',
-                      subtitle: 'Block A · 35m',
-                      status: 'Found',
-                      imageAsset: 'assets/images/wallet.png',
-                    ),
-                  ),
-                ],
+              // Live Firestore Found Items + Default Cards
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection('found_items')
+                    .orderBy('createdAt', descending: true)
+                    .limit(4)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final defaultCards = [
+                    {
+                      'title': 'iPhone 14',
+                      'subtitle': 'Cafeteria · 10m',
+                      'status': 'Found',
+                      'category': 'Electronics',
+                      'imageAsset': 'assets/images/phone.png',
+                    },
+                    {
+                      'title': 'Leather wallet',
+                      'subtitle': 'Block A · 35m',
+                      'status': 'Found',
+                      'category': 'Keys',
+                      'imageAsset': 'assets/images/wallet.png',
+                    },
+                  ];
+
+                  final combinedCards = [
+                    ..._mapFoundDocs(snapshot.data),
+                    ...defaultCards,
+                  ];
+
+                  final filteredCards = _selectedCategoryIndex == 0
+                      ? combinedCards
+                      : combinedCards
+                      .where(
+                        (item) =>
+                    item['category'].toString().toLowerCase() ==
+                        selectedCategory.toLowerCase(),
+                  )
+                      .toList();
+
+                  final displayCards =
+                  filteredCards.isEmpty ? combinedCards : filteredCards;
+                  final firstPair = displayCards.take(2).toList();
+
+                  return Row(
+                    children: [
+                      for (int i = 0; i < firstPair.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildItemCard(
+                            title: firstPair[i]['title'].toString(),
+                            subtitle: firstPair[i]['subtitle'].toString(),
+                            status: firstPair[i]['status'].toString(),
+                            imageAsset: firstPair[i]['imageAsset'].toString(),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -270,93 +379,140 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Match Card Item
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE0E4EF)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECEAF8),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.asset(
-                          'assets/images/backpack.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.backpack_outlined, color: purple, size: 36);
-                          },
-                        ),
-                      ),
+              // Live Firestore Lost Items + Match Card Item
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection('lost_items')
+                    .orderBy('createdAt', descending: true)
+                    .limit(1)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  String matchTitle = 'Navy Herschel backpack';
+                  String matchSubtitle = 'Your navy backpack · Central Library';
+                  String matchImage = 'assets/images/backpack.png';
+
+                  final snapData = snapshot.data;
+                  if (snapData != null && snapData.docs.isNotEmpty) {
+                    final raw = snapData.docs.first.data();
+                    final latestLost = raw != null
+                        ? Map<String, dynamic>.from(raw as Map)
+                        : <String, dynamic>{};
+                    final lostName =
+                    (latestLost['itemName'] ?? '').toString().trim();
+                    final lostLoc =
+                    (latestLost['lastSeenLocation'] ?? '').toString().trim();
+                    final lostCat =
+                    (latestLost['category'] ?? '').toString().trim();
+                    if (lostName.isNotEmpty) matchTitle = lostName;
+                    if (lostLoc.isNotEmpty) {
+                      matchSubtitle = 'Reported lost · $lostLoc';
+                    }
+                    if (lostCat.isNotEmpty) {
+                      matchImage = _imageForCategory(lostCat);
+                    }
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE0E4EF)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Navy Herschel backpack',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF182237),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECEAF8),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.asset(
+                              matchImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.backpack_outlined,
+                                  color: purple,
+                                  size: 36,
+                                );
+                              },
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Your navy backpack · Central Library',
-                            style: TextStyle(fontSize: 12, color: Colors.blueGrey),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFEDFF),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'Matched',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: purple,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              Text(
+                                matchTitle,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF182237),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE8F8F0),
-                                  borderRadius: BorderRadius.circular(8),
+                              const SizedBox(height: 4),
+                              Text(
+                                matchSubtitle,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey,
                                 ),
-                                child: const Text(
-                                  '94% match',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF059669),
-                                    fontWeight: FontWeight.bold,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFEDFF),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Matched',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: purple,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F8F0),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      '94% match',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF059669),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
             ],
@@ -403,7 +559,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return const Center(
-                    child: Icon(Icons.image_not_supported_outlined, color: purple, size: 36),
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: purple,
+                      size: 36,
+                    ),
                   );
                 },
               ),
@@ -429,7 +589,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F8F0),
                     borderRadius: BorderRadius.circular(10),

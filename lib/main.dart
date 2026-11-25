@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:test2/firebase_options.dart';
 import 'navigation/main_shell.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/reset_password_screen.dart';
@@ -22,7 +24,11 @@ import 'screens/returns/item_returned_screen.dart';
 import 'screens/returns/plan_return_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const LostAndFoundApp());
 }
 
@@ -111,16 +117,34 @@ class _SplashScreenState extends State<SplashScreen> {
                     children: [
                       Icon(Icons.travel_explore, size: 80, color: Colors.white),
                       SizedBox(height: 20),
-                      Text('Lost & Found', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text(
+                        'Lost & Found',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                       SizedBox(height: 10),
-                      Text('Lost it? Found it. Return it.', style: TextStyle(fontSize: 15, color: Colors.white70)),
+                      Text(
+                        'Lost it? Found it. Return it.',
+                        style: TextStyle(fontSize: 15, color: Colors.white70),
+                      ),
                     ],
                   ),
                 ),
               ),
               Padding(
                 padding: EdgeInsets.all(24),
-                child: Text('A LITTLE CARE. A CLOSER CAMPUS.', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, letterSpacing: 1.4, color: Colors.white70)),
+                child: Text(
+                  'A LITTLE CARE. A CLOSER CAMPUS.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 1.4,
+                    color: Colors.white70,
+                  ),
+                ),
               ),
             ],
           ),

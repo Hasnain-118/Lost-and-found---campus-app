@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,9 +10,21 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
   bool hidePassword = true;
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   void showMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -19,16 +32,61 @@ class _LoginScreenState extends State<LoginScreen> {
       );
   }
 
-  // Direct HomeScreen (/home) par jane ka working logic
-  void login() {
+  String friendlyAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'Invalid email address format.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return e.message ?? 'Login failed. Please try again.';
+    }
+  }
+
+  Future<void> login() async {
     FocusScope.of(context).unfocus();
 
-    if (formKey.currentState!.validate()) {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/home',
             (route) => false,
       );
+    } on FirebaseAuthException catch (e) {
+      showMessage(friendlyAuthError(e));
+    } catch (e) {
+      showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -82,6 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Email field
                     TextFormField(
+                      controller: emailController,
+                      enabled: !isLoading,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
@@ -105,6 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Password field
                     TextFormField(
+                      controller: passwordController,
+                      enabled: !isLoading,
                       obscureText: hidePassword,
                       textInputAction: TextInputAction.done,
                       autocorrect: false,
@@ -122,7 +184,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
                           ),
-                          onPressed: () {
+                          onPressed: isLoading
+                              ? null
+                              : () {
                             setState(() {
                               hidePassword = !hidePassword;
                             });
@@ -136,14 +200,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         return null;
                       },
-                      onFieldSubmitted: (_) => login(),
+                      onFieldSubmitted: (_) {
+                        if (!isLoading) {
+                          login();
+                        }
+                      },
                     ),
 
                     // Forgot password navigation
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
+                        onPressed: isLoading
+                            ? null
+                            : () {
                           Navigator.pushNamed(context, '/reset-password');
                         },
                         child: const Text(
@@ -159,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 52,
                       child: FilledButton(
-                        onPressed: login,
+                        onPressed: isLoading ? null : login,
                         style: FilledButton.styleFrom(
                           backgroundColor: purple,
                           foregroundColor: Colors.white,
@@ -167,7 +237,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
+                        child: isLoading
+                            ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Text(
                           'Login',
                           style: TextStyle(
                             fontSize: 16,
@@ -214,7 +293,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           const Text('New to Lost & Found?'),
                           TextButton(
-                            onPressed: () {
+                            onPressed: isLoading
+                                ? null
+                                : () {
                               Navigator.pushNamed(context, '/signup');
                             },
                             child: const Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -13,6 +14,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   // Link send hone ke baad confirmation box dikhane ke liye flag
   bool _isLinkSent = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,13 +22,60 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _sendResetLink() {
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+  }
+
+  String _friendlyResetError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'Invalid email address format.';
+      case 'user-not-found':
+        return 'No account found with this email address.';
+      case 'too-many-requests':
+        return 'Too many requests. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return e.message ?? 'Could not send reset email. Please try again.';
+    }
+  }
+
+  Future<void> _sendResetLink() async {
     FocusScope.of(context).unfocus();
 
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate() || _isLoading) {
+      return;
+    }
+
+    final email = _emailController.text.trim();
+
+    setState(() {
+      _isLoading = true;
+      _isLinkSent = false;
+    });
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
       setState(() {
         _isLinkSent = true;
       });
+    } on FirebaseAuthException catch (e) {
+      _showMessage(_friendlyResetError(e));
+    } catch (e) {
+      _showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -42,7 +91,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF182237)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
         ),
         title: const Text(
           'Reset password',
@@ -119,12 +168,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     // Email Field
                     TextFormField(
                       controller: _emailController,
+                      enabled: !_isLoading,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.done,
                       decoration: InputDecoration(
                         hintText: 'ahmed@campus.edu.pk',
                         hintStyle: const TextStyle(color: Colors.grey),
-                        suffixIcon: const Icon(Icons.email_outlined, color: Colors.blueGrey),
+                        suffixIcon: const Icon(
+                          Icons.email_outlined,
+                          color: Colors.blueGrey,
+                        ),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
@@ -145,12 +198,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         if (email.isEmpty) {
                           return 'Please enter your email';
                         }
-                        if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+                        if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                            .hasMatch(email)) {
                           return 'Enter a valid email address';
                         }
                         return null;
                       },
-                      onFieldSubmitted: (_) => _sendResetLink(),
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) _sendResetLink();
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -158,7 +214,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     SizedBox(
                       height: 52,
                       child: FilledButton(
-                        onPressed: _sendResetLink,
+                        onPressed: _isLoading ? null : _sendResetLink,
                         style: FilledButton.styleFrom(
                           backgroundColor: purple,
                           foregroundColor: Colors.white,
@@ -166,7 +222,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
+                        child: _isLoading
+                            ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Text(
                           'Send Reset Link',
                           style: TextStyle(
                             fontSize: 16,
@@ -229,7 +294,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     SizedBox(
                       height: 52,
                       child: TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed:
+                        _isLoading ? null : () => Navigator.pop(context),
                         style: TextButton.styleFrom(
                           backgroundColor: const Color(0xFFEEF0FA),
                           shape: RoundedRectangleBorder(
